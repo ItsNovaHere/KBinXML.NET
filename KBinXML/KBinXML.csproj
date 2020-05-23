@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp5.0</TargetFramework>
+        <Nullable>disable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0-preview.4.20251.6" />
+    </ItemGroup>
+
+</Project>
