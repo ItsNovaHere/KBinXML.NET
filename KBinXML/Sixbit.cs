@@ -35,8 +35,7 @@ namespace KBinXML {
 			}
 
 			var decodedChars = returnBytes.Select(x => CharacterMap[x]).ToArray();
-			Array.Reverse(decodedChars);
-			return new string(decodedChars);
+			return new string(decodedChars).Substring(0, length);
 		}
 	}
 

@@ -118,7 +118,8 @@ namespace KBinXML {
 				if (format.Equals(Format.Binary)) {
 					node.SetAttributeValue("__size", totalCount);
 					text = ""; //TODO binary data
-				} else if (format.Equals(Format.String)) {
+				} else if (format.Equals(Format.String)) { 
+					Array.Reverse(nodeData);
 					text = encoding.GetString(nodeData);
 				} else if (isArray) {
 					text = "";
