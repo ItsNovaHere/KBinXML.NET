@@ -65,7 +65,9 @@ namespace KBinXML {
 
 				switch (nodeType) {
 					case (byte) Control.Attribute: {
-						var value = encoding.GetString(ReadDataAuto(dataBuffer));
+						var readDataAuto = ReadDataAuto(dataBuffer);
+						Array.Reverse(readDataAuto);
+						var value = encoding.GetString(readDataAuto);
 						node?.SetAttributeValue(name, value);
 						break;
 					}
