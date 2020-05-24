@@ -17,10 +17,10 @@ namespace KBinXML {
 			set => _offset = value;
 		}
 
-		public byte[] GetBytes(int count) {
+		public byte[] GetBytes(int count, bool reverse = true) {
 			var data = _data[_offset..(_offset += count)];
 			
-			if (BitConverter.IsLittleEndian) {
+			if (BitConverter.IsLittleEndian && reverse) {
 				Array.Reverse(data);
 			}
 

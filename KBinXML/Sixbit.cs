@@ -6,7 +6,7 @@ namespace KBinXML {
 
 	public class Sixbit {
 		private const string CharacterMap = "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
-		private static readonly Dictionary<char, byte> StringMap;
+		private static Dictionary<char, byte> StringMap { get; }
 
 		static Sixbit() {
 			StringMap = new Dictionary<char, byte>();
@@ -18,16 +18,20 @@ namespace KBinXML {
 		
 		public static string Decode(ByteBuffer data) {
 			var length = data.GetU8();
-			var returnBytes = new byte[length];
+			
 			var lengthBits = length * 6;
 			var lengthBytes = (lengthBits + 7) / 8;
-			var padding = 8 - lengthBits % 8;
 
-			var bits = BitConverter.ToInt64(data.GetBytes(lengthBytes).Ensure(8));
-			bits >>= padding != 8 ? padding : 0; 
-			for (var i = 0; i < length; i++) {
-				returnBytes[i] = (byte)(bits & 0b111111);
-				bits >>= 6;
+			
+			var bits = data.GetBytes(lengthBytes, false);
+			var returnBytes = new byte[length * 8 / 6];
+			
+			for (var i = 0; i < bits.Length * 8; i++) {
+				var bit = bits[i / 8];
+				var bitShift = i % 8;
+				var value = (byte) (((bit << bitShift) & 0b10000000) >> 7);
+				returnBytes[i / 6] += value;
+				if(i % 6 != 5) returnBytes[i / 6] <<= 1;
 			}
 
 			var decodedChars = returnBytes.Select(x => CharacterMap[x]).ToArray();
