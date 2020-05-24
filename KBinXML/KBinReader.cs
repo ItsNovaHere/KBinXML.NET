@@ -70,8 +70,10 @@ namespace KBinXML {
 					case (byte) Control.Attribute: {
 						var readDataAuto = ReadDataAuto(dataBuffer);
 						Array.Reverse(readDataAuto);
+						
 						var value = encoding.GetString(readDataAuto).Trim('\0');
 						node?.SetAttributeValue(name, value);
+						
 						break;
 					}
 					case (byte) Control.NodeEnd: {
@@ -101,6 +103,7 @@ namespace KBinXML {
 
 				var count = format.Count;
 				var arrayCount = 1;
+				
 				if (count == -1) {
 					count = (int) dataBuffer.GetU32();
 					isArray = true;
@@ -113,7 +116,7 @@ namespace KBinXML {
 
 				byte[] nodeData;
 				if (isArray) {
-					nodeData = dataBuffer.GetBytes(totalCount, false);
+					nodeData = dataBuffer.GetBytes(totalCount);
 					dataBuffer.RealignRead();
 				} else {
 					nodeData = ReadDataAligned(dataBuffer, dataByteBuffer, dataWordBuffer, format.Size, format.Count);
@@ -122,16 +125,20 @@ namespace KBinXML {
 				string text;
 				if (format.Equals(Format.Binary)) {
 					node.SetAttributeValue("__size", totalCount);
+					
+					Array.Reverse(nodeData);
 					text = "";
 					for (var i = 0; i < nodeData.Length; i++) {
-						text += Convert.ToString(nodeData[i], 16);
+						text += nodeData[i].ToString("x2");
 					}
 				} else if (format.Equals(Format.String)) {
+					Array.Reverse(nodeData);
 					text = encoding.GetString(nodeData);
 				} else if (isArray) {
 					text = "";
 					for (var i = 0; i < arrayCount; i++) {
-						text += format.FormatToString(nodeData[(i * count)..((i + 1) * count)]) + " ";
+						var dataChunk = nodeData[(i * count)..((i + 1) * count)];
+						text = format.FormatToString(dataChunk) + " " + text;
 					}
 				} else {
 					text = format.FormatToString(nodeData);
@@ -139,7 +146,7 @@ namespace KBinXML {
 
 				node.Value = text.Trim('\0').Trim();
 			}
-
+			
 			document.Add(node);
 			Document = document;
 		}
@@ -350,6 +357,7 @@ namespace KBinXML {
 
 		public static class Converters {
 			public static string IP4ToString(byte[] data) {
+				Array.Reverse(data);
 				var ret = "";
 				for (var i = 0; i < data.Length; i++) {
 					ret += data[i] + ".";
@@ -361,7 +369,7 @@ namespace KBinXML {
 
 			public static byte[] IP4FromString(string data) {
 				var ret = new byte[4];
-				var input = "0.0.0.14".Split(".");
+				var input = data.Split(".");
 				for (var i = 0; i < ret.Length; i++) {
 					ret[i] = byte.Parse(input[i]);
 				}
