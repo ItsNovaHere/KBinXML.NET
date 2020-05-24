@@ -18,9 +18,16 @@ namespace KBinXML.Tests {
 			_testOutputHelper = testOutputHelper;
 		}
 
-		[Fact(DisplayName = "KBinReader.GetXML() Returns Valid XML")]
+		[Fact]
 		public void KBinReader_GetXML_ReturnsValidXML() {
+			var sw = new Stopwatch();
+			sw.Start();
+			
 			var kbin = new KBinReader(File.ReadAllBytes(@"testcases_out.kbin"));
+			
+			sw.Stop();
+			
+			_testOutputHelper.WriteLine(sw.Elapsed.ToString());
 			_testOutputHelper.WriteLine(kbin.Document.ToString());
 		}
 

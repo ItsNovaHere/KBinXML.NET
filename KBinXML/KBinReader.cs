@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
@@ -18,7 +19,7 @@ namespace KBinXML {
 		public KBinReader(byte[] data) {
 			var document = new XDocument();
 			var node = document.Root;
-
+			
 			var nodeBuffer = new ByteBuffer(data);
 			Assert(nodeBuffer.GetU8(), 0xA0);
 			var compressedValue = nodeBuffer.GetU8();
@@ -41,6 +42,8 @@ namespace KBinXML {
 			var dataByteBuffer = new ByteBuffer(data, nodeEnd);
 			var dataWordBuffer = new ByteBuffer(data, nodeEnd);
 
+			document.Declaration = new XDeclaration("1.0", encoding.WebName, "");
+
 			var nodesLeft = true;
 			while (nodesLeft) {
 				while (nodeBuffer.PeekU8() == 0) nodeBuffer.GetU8();
@@ -57,17 +60,17 @@ namespace KBinXML {
 						name = Sixbit.Decode(nodeBuffer);
 					} else {
 						var length = (nodeBuffer.GetU8() & 0b10111111) + 1;
-						name = encoding.GetString(nodeBuffer.GetBytes(length));
+						name = encoding.GetString(nodeBuffer.GetBytes(length)).Trim('\0');
 					}
 				}
-
+				
 				var skip = true;
 
 				switch (nodeType) {
 					case (byte) Control.Attribute: {
 						var readDataAuto = ReadDataAuto(dataBuffer);
 						Array.Reverse(readDataAuto);
-						var value = encoding.GetString(readDataAuto);
+						var value = encoding.GetString(readDataAuto).Trim('\0');
 						node?.SetAttributeValue(name, value);
 						break;
 					}
@@ -101,7 +104,7 @@ namespace KBinXML {
 				if (count == -1) {
 					count = (int) dataBuffer.GetU32();
 					isArray = true;
-				} else {
+				} else if(isArray) {
 					arrayCount = (int) (dataBuffer.GetU32() / (format.Size * count));
 					node.SetAttributeValue("__count", arrayCount);
 				}
@@ -110,7 +113,7 @@ namespace KBinXML {
 
 				byte[] nodeData;
 				if (isArray) {
-					nodeData = dataBuffer.GetBytes(totalCount);
+					nodeData = dataBuffer.GetBytes(totalCount, false);
 					dataBuffer.RealignRead();
 				} else {
 					nodeData = ReadDataAligned(dataBuffer, dataByteBuffer, dataWordBuffer, format.Size, format.Count);
@@ -119,24 +122,26 @@ namespace KBinXML {
 				string text;
 				if (format.Equals(Format.Binary)) {
 					node.SetAttributeValue("__size", totalCount);
-					text = ""; //TODO binary data
-				} else if (format.Equals(Format.String)) { 
-					Array.Reverse(nodeData);
+					text = "";
+					for (var i = 0; i < nodeData.Length; i++) {
+						text += Convert.ToString(nodeData[i], 16);
+					}
+				} else if (format.Equals(Format.String)) {
 					text = encoding.GetString(nodeData);
 				} else if (isArray) {
 					text = "";
 					for (var i = 0; i < arrayCount; i++) {
-						text = format.FormatToString(nodeData[(i * count)..((i + 1) * count)]) + " " + text;
+						text += format.FormatToString(nodeData[(i * count)..((i + 1) * count)]) + " ";
 					}
-					text = text.TrimEnd();
 				} else {
 					text = format.FormatToString(nodeData);
 				}
 
-				node.Value = text;
+				node.Value = text.Trim('\0').Trim();
 			}
 
-			Document = new XDocument(document.Root);
+			document.Add(node);
+			Document = document;
 		}
 
 		private static byte[] ReadDataAligned(ByteBuffer data, ByteBuffer dataByte, ByteBuffer dataWord, int size, int count) {
@@ -146,15 +151,15 @@ namespace KBinXML {
 			var totalSize = size * count;
 			byte[] ret;
 			
-			switch (size) {
+			switch (totalSize) {
 				case 1:
-					ret = dataByte.GetBytes(count);
+					ret = dataByte.GetBytes(totalSize);
 					break;
 				case 2:
-					ret = dataWord.GetBytes(count);
+					ret = dataWord.GetBytes(totalSize);
 					break;
 				default:
-					ret = data.GetBytes(count);
+					ret = data.GetBytes(totalSize);
 					data.RealignRead();
 					break;
 			}
@@ -196,6 +201,8 @@ namespace KBinXML {
 			{10, Format.Binary},
 			{11, Format.String},
 			{12, Format.IP4},
+			{14, Format.Float},
+			{15, Format.Double},
 			{16, Format.S8 * 2},
 			{17, Format.U8 * 2},
 			{18, Format.S16 * 2},
@@ -204,6 +211,8 @@ namespace KBinXML {
 			{21, Format.U32 * 2},
 			{22, (Format.S64 * 2).WithAlias("vs64")},
 			{23, (Format.U64 * 2).WithAlias("vu64")},
+			{24, (Format.Float * 2).Rename("2f")},
+			{25, (Format.Double * 2).Rename("2d").WithAlias("vd")},
 			{26, Format.S8 * 3},
 			{27, Format.U8 * 3},
 			{28, Format.S16 * 3},
@@ -212,6 +221,8 @@ namespace KBinXML {
 			{31, Format.U32 * 3},
 			{32, Format.S64 * 3},
 			{33, Format.U64 * 3},
+			{34, (Format.Float * 3).Rename("3f")},
+			{35, (Format.Double * 3).Rename("3d")},
 			{36, Format.S8 * 4},
 			{37, Format.U8 * 4},
 			{38, Format.S16 * 4},
@@ -220,10 +231,17 @@ namespace KBinXML {
 			{41, (Format.U32 * 4).WithAlias("vu32")},
 			{42, Format.S64 * 4},
 			{43, Format.U64 * 4},
+			{44, (Format.Float * 4).Rename("4f")},
+			{45, (Format.Double * 4).Rename("4d")},
 			{48, (Format.S8 * 16).WithAlias("vs8")},
 			{49, (Format.U8 * 16).WithAlias("vu8")},
 			{50, (Format.S16 * 8).WithAlias("vs16")},
-			{51, (Format.U16 * 8).WithAlias("vu16")}
+			{51, (Format.U16 * 8).WithAlias("vu16")},
+			{52, Format.Bool},
+			{53, (Format.Bool * 2).Rename("2b")},
+			{54, (Format.Bool * 3).Rename("3b")},
+			{55, (Format.Bool * 4).Rename("4b")},
+			{56, (Format.Bool * 16).Rename("vb")},
 		};
 
 		private enum Control : byte {
@@ -246,9 +264,14 @@ namespace KBinXML {
 			public static readonly Format U32 = new Format("u32", 4, Converters.U32ToString, Converters.U32FromString);
 			public static readonly Format S64 = new Format("s64", 8, Converters.S64ToString, Converters.S64FromString);
 			public static readonly Format U64 = new Format("u64", 8, Converters.U64ToString, Converters.U64FromString);
+			public static readonly Format Float = new Format(new[] {"float", "f"}, 4, Converters.SingleToString, Converters.SingleFromString);
+			public static readonly Format Double = new Format(new[] {"double", "d"}, 8, Converters.DoubleToString, Converters.DoubleFromString);
+			public static readonly Format Time = new Format("time", 4, Converters.U32ToString, Converters.U32FromString);
 			public static readonly Format IP4 = new Format("ip4", 1, Converters.IP4ToString, Converters.IP4FromString, 4);
 			public static readonly Format String = new Format( new []{"str", "string"}, 0, null!, null!, -1); // Theoretically these should never be called. Key word: Theoretically.
 			public static readonly Format Binary = new Format(new[]{"bin", "binary"}, 0, null!, null!, -1); // See above.
+			public static readonly Format Bool = new Format(new[] {"bool", "b"}, 1, Converters.BoolToString, Converters.BoolFromString);
+			
 			
 			internal delegate byte[] FromString(string data);
 
@@ -264,7 +287,7 @@ namespace KBinXML {
 			private Format(IEnumerable<string> names, int size, ToString toString, FromString fromString, int count = 1) {
 				_names = new List<string>(names);
 				_size = size;
-				_toString = x => { if(BitConverter.IsLittleEndian) Array.Reverse((Array) x); return toString(x); };
+				_toString = toString;
 				_fromString = x => {
 					var ret = fromString(x);
 					if(BitConverter.IsLittleEndian) Array.Reverse(ret);
@@ -285,17 +308,23 @@ namespace KBinXML {
 				return this;
 			}
 
+			public Format Rename(string name) {
+				_names.Clear();
+				_names.Add(name);
+				return this;
+			}
+
 			public static Format operator *(Format a, int b) {
 				var names = a._names.Select(x => $"{b}{x}");
-				var size = a._size * b;
+				var size = a._size;
 
 				var toString = new ToString(data => {
 					var ret = "";
 					foreach (var dataChunk in data.Chunked(a._size)) {
-						ret += a._toString(dataChunk);
+						ret = a._toString(dataChunk) + " " + ret;
 					}
 
-					return ret;
+					return ret.Trim();
 				});
 				var fromString = new FromString(data => {
 					var returnArray = new List<byte>();
@@ -338,6 +367,30 @@ namespace KBinXML {
 				}
 
 				return ret;
+			}
+
+			public static string SingleToString(byte[] data) {
+				return MathF.Round(BitConverter.ToSingle(data), 6).ToString(CultureInfo.InvariantCulture);
+			}
+
+			public static byte[] SingleFromString(string data) {
+				return BitConverter.GetBytes(float.Parse(data));
+			}
+
+			public static string DoubleToString(byte[] data) {
+				return Math.Round(BitConverter.ToDouble(data), 6).ToString(CultureInfo.InvariantCulture);
+			}
+			
+			public static byte[] DoubleFromString(string data) {
+				return BitConverter.GetBytes(double.Parse(data));
+			}
+
+			public static string BoolToString(byte[] data) {
+				return data[0] == 0 ? "0" : "1";
+			}
+
+			public static byte[] BoolFromString(string data) {
+				return new[] {(byte) (data[0] == '0' ? 0 : 1)};
 			}
 			
 			public static string U8ToString(byte[] data) {
