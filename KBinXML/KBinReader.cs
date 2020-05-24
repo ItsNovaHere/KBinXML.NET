@@ -66,29 +66,20 @@ namespace KBinXML {
 				
 				var skip = true;
 
-				switch (nodeType) {
-					case (byte) Control.Attribute: {
-						var readDataAuto = ReadDataAuto(dataBuffer);
-						Array.Reverse(readDataAuto);
-						
-						var value = encoding.GetString(readDataAuto).Trim('\0');
-						node?.SetAttributeValue(name, value);
-						
-						break;
-					}
-					case (byte) Control.NodeEnd: {
-						if (node?.Parent != null) {
-							node = node.Parent;
-						}
+				if (nodeType == (byte) Control.Attribute) {
+					var readDataAuto = ReadDataAuto(dataBuffer);
+					Array.Reverse(readDataAuto);
 
-						break;
+					var value = encoding.GetString(readDataAuto).Trim('\0');
+					node?.SetAttributeValue(name, value);
+				} else if (nodeType == (byte) Control.NodeEnd) {
+					if (node?.Parent != null) {
+						node = node.Parent;
 					}
-					case (byte) Control.SectionEnd:
-						nodesLeft = false;
-						break;
-					default:
-						skip = false;
-						break;
+				} else if (nodeType == (byte) Control.SectionEnd) {
+					nodesLeft = false;
+				} else {
+					skip = false;
 				}
 
 				if (skip) continue;
@@ -122,12 +113,11 @@ namespace KBinXML {
 					nodeData = ReadDataAligned(dataBuffer, dataByteBuffer, dataWordBuffer, format.Size, format.Count);
 				}
 
-				string text;
+				var text = "";
 				if (format.Equals(Format.Binary)) {
 					node.SetAttributeValue("__size", totalCount);
 					
 					Array.Reverse(nodeData);
-					text = "";
 					for (var i = 0; i < nodeData.Length; i++) {
 						text += nodeData[i].ToString("x2");
 					}
@@ -135,10 +125,8 @@ namespace KBinXML {
 					Array.Reverse(nodeData);
 					text = encoding.GetString(nodeData);
 				} else if (isArray) {
-					text = "";
 					for (var i = 0; i < arrayCount; i++) {
-						var dataChunk = nodeData[(i * count)..((i + 1) * count)];
-						text = format.FormatToString(dataChunk) + " " + text;
+						text = format.FormatToString(nodeData[(i * count)..((i + 1) * count)]) + " " + text;
 					}
 				} else {
 					text = format.FormatToString(nodeData);
@@ -327,7 +315,9 @@ namespace KBinXML {
 
 				var toString = new ToString(data => {
 					var ret = "";
-					foreach (var dataChunk in data.Chunked(a._size)) {
+					var bytes = data.Chunked(a._size);
+					for (var i = 0; i < bytes.Length; i++) {
+						var dataChunk = bytes[i];
 						ret = a._toString(dataChunk) + " " + ret;
 					}
 

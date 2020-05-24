@@ -18,19 +18,12 @@ namespace KBinXML {
 		
 		public static string Decode(ByteBuffer data) {
 			var length = data.GetU8();
-			
-			var lengthBits = length * 6;
-			var lengthBytes = (lengthBits + 7) / 8;
 
-			
-			var bits = data.GetBytes(lengthBytes, false);
+			var bits = data.GetBytes((length * 6 + 7) / 8, false);
 			var returnBytes = new byte[length * 8 / 6];
 			
 			for (var i = 0; i < bits.Length * 8; i++) {
-				var bit = bits[i / 8];
-				var bitShift = i % 8;
-				var value = (byte) (((bit << bitShift) & 0b10000000) >> 7);
-				returnBytes[i / 6] += value;
+				returnBytes[i / 6] += (byte) (((bits[i / 8] << i % 8) & 0b10000000) >> 7);
 				if(i % 6 != 5) returnBytes[i / 6] <<= 1;
 			}
 
