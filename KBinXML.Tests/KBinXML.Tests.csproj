@@ -22,6 +22,9 @@
       <Content Include="testcases_out.kbin">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+        <Content Include="test.kbin">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

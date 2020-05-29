@@ -1,12 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp5.0</TargetFramework>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <Nullable>disable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageVersion>0.0.1-alpha</PackageVersion>
+        <Title>KBinXML</Title>
+        <Authors>ItsNovaHere</Authors>
+        <Company>ItsNovaHere</Company>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <DebugType>none</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0-preview.4.20251.6" />
+      <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.1" />
     </ItemGroup>
 
 </Project>

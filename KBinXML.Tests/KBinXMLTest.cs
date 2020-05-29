@@ -23,7 +23,7 @@ namespace KBinXML.Tests {
 			var sw = new Stopwatch();
 			sw.Start();
 			
-			var kbin = new KBinReader(File.ReadAllBytes(@"testcases_out.kbin"));
+			var kbin = new KBinReader(File.ReadAllBytes(@"test.kbin"));
 			
 			sw.Stop();
 			

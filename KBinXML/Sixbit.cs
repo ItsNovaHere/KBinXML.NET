@@ -20,7 +20,7 @@ namespace KBinXML {
 			var length = data.GetU8();
 
 			var bits = data.GetBytes((length * 6 + 7) / 8, false);
-			var returnBytes = new byte[length * 8 / 6];
+			var returnBytes = new byte[(length * 8 / 6) + 1];
 			
 			for (var i = 0; i < bits.Length * 8; i++) {
 				returnBytes[i / 6] += (byte) (((bits[i / 8] << i % 8) & 0b10000000) >> 7);
