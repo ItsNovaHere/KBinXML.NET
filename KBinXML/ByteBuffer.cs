@@ -12,10 +12,18 @@ namespace KBinXML {
 			_offset = offset;
 		}
 
+		public ByteBuffer() : this(new byte[0]) {
+			
+		}
+
+		public byte[] Data => _data;
+		
 		public int Offset {
 			get => _offset;
 			set => _offset = value;
 		}
+
+		public int Length => _data.Length;
 
 		public byte[] GetBytes(int count, bool reverse = true) {
 			var data = _data[_offset..(_offset += count)];
@@ -45,8 +53,17 @@ namespace KBinXML {
 
 		public void RealignWrite(int size = 4) {
 			while (_offset % size != 0) {
-				AppendBytes(new byte[]{0});
+				AppendU8(0);
 			}
+		}
+
+		public void Set(byte[] data, int offset) {
+			var dataEnd = data.Length + offset;
+			if (dataEnd > _data.Length) {
+				Array.Resize(ref _data, dataEnd);
+			}
+			
+			
 		}
 
 		private byte GetByte() {
@@ -58,7 +75,7 @@ namespace KBinXML {
 		}
 
 		public void AppendBytes(byte[] data) {
-			Array.Resize(ref _data, _data.Length + data.Length);
+			Array.Resize(ref _data, _offset + data.Length);
 			data.CopyTo(_data, _offset);
 			_offset += data.Length;
 		}
@@ -73,6 +90,14 @@ namespace KBinXML {
 		public int GetS32() => BitConverter.ToInt32(GetBytes(sizeof(int)));
 		public ulong GetU64() => BitConverter.ToUInt64(GetBytes(sizeof(ulong)));
 		public long GetS64() => BitConverter.ToInt64(GetBytes(sizeof(long)));
+
+		public void AppendU8(in byte data) => AppendBytes(new[] {data});
+		// This allows for cleaner code when dealing with bit math.
+		public void AppendU8(in int data) => AppendBytes(new[] {(byte) data}); 
+		public void AppendS8(in sbyte data) => AppendBytes(new[] {(byte) data});
+		public void AppendU16(in ushort data) => AppendBytes(BitConverter.GetBytes(data));
+		public void AppendU32(in uint data) => AppendBytes(BitConverter.GetBytes(data));
+		public void AppendS32(in int data) => AppendBytes(BitConverter.GetBytes(data));
 	}
 
 }

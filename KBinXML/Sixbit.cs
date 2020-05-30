@@ -30,6 +30,23 @@ namespace KBinXML {
 			var decodedChars = returnBytes.Select(x => CharacterMap[x]).ToArray();
 			return new string(decodedChars).Substring(0, length).Trim('\0');
 		}
+
+		public static byte[] Encode(string data) {
+			var chars = new byte[data.Length];
+			for (var i = 0; i < data.Length; i++) {
+				chars[i] = StringMap[data[i]];
+			}
+
+			var returnBytes = new byte[chars.Length * 6 / 8 + 2];
+			returnBytes[0] = (byte) (data.Length & 0xFF);
+			
+			for (var i = 0; i < chars.Length * 6; i++) {
+				returnBytes[i / 8 + 1] += (byte) (((chars[i / 6] << i % 6) & 0b100000) >> 5);
+				if (i % 8 != 7) returnBytes[i / 8 + 1] <<= 1;
+			}
+
+			return returnBytes;
+		}
 	}
 
 }

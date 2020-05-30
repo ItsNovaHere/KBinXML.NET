@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace KBinXML {
 
@@ -22,6 +24,10 @@ namespace KBinXML {
 			}
 
 			return data;
+		}
+
+		public static string GetValue(this XElement element) {
+			return element.Nodes().OfType<XText>().Aggregate("", (current, text) => current + text.Value);
 		}
 	}
 

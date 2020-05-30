@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 // ReSharper disable LoopCanBeConvertedToQuery
@@ -184,7 +182,8 @@ namespace KBinXML {
 			Encoding.GetEncoding(65001) //UTF-8
 		};
 
-		private static Dictionary<int, Format> Formats => new Dictionary<int, Format> {
+		internal static Dictionary<int, Format> Formats => new Dictionary<int, Format> {
+			{1, Format.Void},
 			{2, Format.S8},
 			{3, Format.U8},
 			{4, Format.S16},
@@ -226,7 +225,7 @@ namespace KBinXML {
 			{41, (Format.U32 * 4).WithAlias("vu32")},
 			{42, Format.S64 * 4},
 			{43, Format.U64 * 4},
-			{44, (Format.Float * 4).Rename("4f")},
+			{44, (Format.Float * 4).Rename("4f").WithAlias("vf")},
 			{45, (Format.Double * 4).Rename("4d")},
 			{48, (Format.S8 * 16).WithAlias("vs8")},
 			{49, (Format.U8 * 16).WithAlias("vu8")},
@@ -239,7 +238,7 @@ namespace KBinXML {
 			{56, (Format.Bool * 16).Rename("vb")},
 		};
 
-		private enum Control : byte {
+		internal enum Control : byte {
 			NodeStart = 1,
 			Attribute = 46,
 			NodeEnd = 190,
@@ -248,212 +247,6 @@ namespace KBinXML {
 		
 		private static void Assert(byte actual, byte expected) {
 			if (actual != expected) throw new Exception();
-		}
-
-		private class Format {
-			public static readonly Format S8 = new Format("s8", 1, Converters.S8ToString, Converters.S8FromString);
-			public static readonly Format U8 = new Format("u8", 1, Converters.U8ToString, Converters.U8FromString);
-			public static readonly Format S16 = new Format("s16", 2, Converters.S16ToString, Converters.S16FromString);
-			public static readonly Format U16 = new Format("u16", 2, Converters.U16ToString, Converters.U16FromString);
-			public static readonly Format S32 = new Format("s32", 4, Converters.S32ToString, Converters.S32FromString);
-			public static readonly Format U32 = new Format("u32", 4, Converters.U32ToString, Converters.U32FromString);
-			public static readonly Format S64 = new Format("s64", 8, Converters.S64ToString, Converters.S64FromString);
-			public static readonly Format U64 = new Format("u64", 8, Converters.U64ToString, Converters.U64FromString);
-			public static readonly Format Float = new Format(new[] {"float", "f"}, 4, Converters.SingleToString, Converters.SingleFromString);
-			public static readonly Format Double = new Format(new[] {"double", "d"}, 8, Converters.DoubleToString, Converters.DoubleFromString);
-			public static readonly Format Time = new Format("time", 4, Converters.U32ToString, Converters.U32FromString);
-			public static readonly Format IP4 = new Format("ip4", 1, Converters.IP4ToString, Converters.IP4FromString, 4);
-			public static readonly Format String = new Format( new []{"str", "string"}, 0, null!, null!, -1); // Theoretically these should never be called. Key word: Theoretically.
-			public static readonly Format Binary = new Format(new[]{"bin", "binary"}, 0, null!, null!, -1); // See above.
-			public static readonly Format Bool = new Format(new[] {"bool", "b"}, 1, Converters.BoolToString, Converters.BoolFromString);
-			
-			
-			internal delegate byte[] FromString(string data);
-
-			internal new delegate string ToString(byte[] data);
-
-			private readonly int _count;
-			private readonly FromString _fromString;
-
-			private readonly List<string> _names;
-			private readonly int _size;
-			private readonly ToString _toString;
-
-			private Format(IEnumerable<string> names, int size, ToString toString, FromString fromString, int count = 1) {
-				_names = new List<string>(names);
-				_size = size;
-				_toString = toString;
-				_fromString = x => {
-					var ret = fromString(x);
-					if(BitConverter.IsLittleEndian) Array.Reverse(ret);
-					return ret;
-				};
-				_count = count;
-			}
-
-			private Format(string name, int size, ToString toString, FromString fromString, int count = 1) : this(new[] {name}, size, toString, fromString, count) { }
-			public string Name => _names[0];
-			public int Count => _count;
-			public int Size => _size;
-			public ToString FormatToString => _toString;
-			public FromString FormatFromString => _fromString;
-			
-			public Format WithAlias(string alias) {
-				_names.Add(alias);
-				return this;
-			}
-
-			public Format Rename(string name) {
-				_names.Clear();
-				_names.Add(name);
-				return this;
-			}
-
-			public static Format operator *(Format a, int b) {
-				var names = a._names.Select(x => $"{b}{x}");
-				var size = a._size;
-
-				var toString = new ToString(data => {
-					var ret = "";
-					var bytes = data.Chunked(a._size);
-					for (var i = 0; i < bytes.Length; i++) {
-						var dataChunk = bytes[i];
-						ret = a._toString(dataChunk) + " " + ret;
-					}
-
-					return ret.Trim();
-				});
-				var fromString = new FromString(data => {
-					var returnArray = new List<byte>();
-					foreach (var dataPart in data.Split(" ")) returnArray.AddRange(a._fromString(dataPart));
-
-					return returnArray.ToArray();
-				});
-
-				return new Format(names, size, toString, fromString, b * a._count);
-			}
-
-			//Comparisons are based off naming.
-			public override bool Equals(object obj) {
-				if (!(obj is Format format)) return false;
-
-				return format._names == _names;
-			}
-
-			public override int GetHashCode() {
-				return Name.GetHashCode();
-			}
-		}
-
-		public static class Converters {
-			public static string IP4ToString(byte[] data) {
-				Array.Reverse(data);
-				var ret = "";
-				for (var i = 0; i < data.Length; i++) {
-					ret += data[i] + ".";
-				}
-
-				ret = ret.Substring(0, ret.Length - 1);
-				return ret;
-			}
-
-			public static byte[] IP4FromString(string data) {
-				var ret = new byte[4];
-				var input = data.Split(".");
-				for (var i = 0; i < ret.Length; i++) {
-					ret[i] = byte.Parse(input[i]);
-				}
-
-				return ret;
-			}
-
-			public static string SingleToString(byte[] data) {
-				return MathF.Round(BitConverter.ToSingle(data), 6).ToString(CultureInfo.InvariantCulture);
-			}
-
-			public static byte[] SingleFromString(string data) {
-				return BitConverter.GetBytes(float.Parse(data));
-			}
-
-			public static string DoubleToString(byte[] data) {
-				return Math.Round(BitConverter.ToDouble(data), 6).ToString(CultureInfo.InvariantCulture);
-			}
-			
-			public static byte[] DoubleFromString(string data) {
-				return BitConverter.GetBytes(double.Parse(data));
-			}
-
-			public static string BoolToString(byte[] data) {
-				return data[0] == 0 ? "0" : "1";
-			}
-
-			public static byte[] BoolFromString(string data) {
-				return new[] {(byte) (data[0] == '0' ? 0 : 1)};
-			}
-			
-			public static string U8ToString(byte[] data) {
-				return data[0].ToString();
-			}
-
-			public static string S8ToString(byte[] data) {
-				return ((sbyte) data[0]).ToString();
-			}
-
-			public static string U16ToString(byte[] data) {
-				return BitConverter.ToUInt16(data).ToString();
-			}
-
-			public static string S16ToString(byte[] data) {
-				return BitConverter.ToInt16(data).ToString();
-			}
-
-			public static string U32ToString(byte[] data) {
-				return BitConverter.ToUInt32(data).ToString();
-			}
-
-			public static string S32ToString(byte[] data) {
-				return BitConverter.ToInt32(data).ToString();
-			}
-
-			public static string U64ToString(byte[] data) {
-				return BitConverter.ToUInt64(data).ToString();
-			}
-
-			public static string S64ToString(byte[] data) {
-				return BitConverter.ToInt64(data).ToString();
-			}
-
-			public static byte[] U8FromString(string data) {
-				return new[] {byte.Parse(data)};
-			}
-
-			public static byte[] S8FromString(string data) {
-				return new[] {(byte) sbyte.Parse(data)};
-			}
-
-			public static byte[] S16FromString(string data) {
-				return BitConverter.GetBytes(short.Parse(data));
-			}
-
-			public static byte[] U16FromString(string data) {
-				return BitConverter.GetBytes(ushort.Parse(data));
-			}
-
-			public static byte[] S32FromString(string data) {
-				return BitConverter.GetBytes(int.Parse(data));
-			}
-
-			public static byte[] U32FromString(string data) {
-				return BitConverter.GetBytes(uint.Parse(data));
-			}
-
-			public static byte[] S64FromString(string data) {
-				return BitConverter.GetBytes(long.Parse(data));
-			}
-
-			public static byte[] U64FromString(string data) {
-				return BitConverter.GetBytes(ulong.Parse(data));
-			}
 		}
 	}
 

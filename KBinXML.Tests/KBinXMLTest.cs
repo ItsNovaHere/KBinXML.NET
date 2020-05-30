@@ -2,9 +2,11 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Xml.Linq;
 using Xunit;
 using Xunit.Abstractions;
-using static KBinXML.KBinReader.Converters;
+using static KBinXML.Converters;
 
 // When trying to write performant code, resharper is a bitch.
 // ReSharper disable LoopCanBeConvertedToQuery
@@ -31,6 +33,25 @@ namespace KBinXML.Tests {
 			_testOutputHelper.WriteLine(kbin.Document.ToString());
 		}
 
+		[Fact]
+		public void KBinWriter_Document_ReturnsByteArray() {
+			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+			
+			var kbin = new KBinWriter(XDocument.Load(@"testcases.xml"));
+			var outKbin = new KBinReader(kbin.Document);
+			_testOutputHelper.WriteLine(outKbin.Document.ToString());
+		}
+
+		[Fact]
+		public void Sixbit() {
+			var test = "ABCdef0123_test";
+			var encoded = KBinXML.Sixbit.Encode(test);
+			var decoded = KBinXML.Sixbit.Decode(new ByteBuffer(encoded));
+			
+			_testOutputHelper.WriteLine(test);
+			_testOutputHelper.WriteLine(decoded);
+		}
+		
 		[Fact]
 		public void Converter_IP4ToString_SpeedTest() {
 			var data = new byte[] {0x00, 0x00, 0x00, 0x0E};
