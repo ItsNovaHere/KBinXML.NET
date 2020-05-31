@@ -14,9 +14,10 @@ namespace KBinXML {
 		private readonly ByteBuffer _dataWordBuffer;
 		private readonly ByteBuffer _dataByteBuffer;
 		internal static Encoding[] Encodings => KBinReader.Encodings;
+		internal static Dictionary<Encoding, byte> EncodingIndex;
 		internal static Dictionary<int, Format> Formats = KBinReader.Formats;
 		public byte[] Document;
-		
+
 		public KBinWriter(XDocument document, Encoding encoding = default, bool compressed = true) {
 			_compressed = compressed;
 			_encoding = encoding ?? Encodings[0];
@@ -25,7 +26,7 @@ namespace KBinXML {
 			header.AppendU8(0xA0);
 			header.AppendU8((byte) (_compressed ? 0x42 : 0x45));
 
-			var encodingIndex = Array.IndexOf(Encodings, encoding) << 5;
+			var encodingIndex = Array.FindIndex(Encodings, x => x.CodePage == _encoding.CodePage) << 5;
 			header.AppendU8(encodingIndex);
 			header.AppendU8(encodingIndex ^ 0xFF);
 			
@@ -111,7 +112,7 @@ namespace KBinXML {
 						data[i] = Convert.ToByte(value[i..(i + 2)], 16);
 					}
 				} else if (format.Name == "str") {
-					data = _encoding.GetBytes(value); //Bug potential: kbinxml appends a null byte here.
+					data = _encoding.GetBytes(value);
 				} else {
 					data = value.Split(" ").Aggregate(new byte[0], (b, s) => b.Concat(format.FormatFromString(s)).ToArray());
 				}

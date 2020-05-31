@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,8 +11,8 @@ namespace KBinXML {
 
 		static Sixbit() {
 			StringMap = new Dictionary<char, byte>();
-			foreach (var c in CharacterMap) {
-				StringMap.Add(c, (byte)c);
+			for (var index = 0; index < CharacterMap.Length; index++) {
+				StringMap.Add(CharacterMap[index], (byte) index);
 			}
 		}
 
@@ -20,11 +21,23 @@ namespace KBinXML {
 			var length = data.GetU8();
 
 			var bits = data.GetBytes((length * 6 + 7) / 8, false);
-			var returnBytes = new byte[(length * 8 / 6) + 1];
-			
-			for (var i = 0; i < bits.Length * 8; i++) {
-				returnBytes[i / 6] += (byte) (((bits[i / 8] << i % 8) & 0b10000000) >> 7);
-				if(i % 6 != 5) returnBytes[i / 6] <<= 1;
+			var returnBytes = new byte[(length * 8 + 7) / 6];
+
+			for (var i = 0; i < bits.Length; i++) {
+				switch (i % 3) {
+					case 0:
+						returnBytes[i + i / 3] += (byte) ((bits[i] & 0b11111100) >> 2);
+						returnBytes[i + 1 + i / 3] += (byte) ((bits[i] & 0b00000011) << 4);
+						break;
+					case 1:
+						returnBytes[i + i / 3] += (byte) ((bits[i] & 0b11110000) >> 4);
+						returnBytes[i + 1 + i / 3] += (byte) ((bits[i] & 0b00001111) << 2);
+						break;
+					case 2:
+						returnBytes[i + i / 3] += (byte) ((bits[i] & 0b11000000) >> 6);
+						returnBytes[i + 1 + i / 3] += (byte) (bits[i] & 0b00111111);
+						break;
+				}
 			}
 
 			var decodedChars = returnBytes.Select(x => CharacterMap[x]).ToArray();
@@ -37,14 +50,28 @@ namespace KBinXML {
 				chars[i] = StringMap[data[i]];
 			}
 
-			var returnBytes = new byte[chars.Length * 6 / 8 + 2];
-			returnBytes[0] = (byte) (data.Length & 0xFF);
-			
-			for (var i = 0; i < chars.Length * 6; i++) {
-				returnBytes[i / 8 + 1] += (byte) (((chars[i / 6] << i % 6) & 0b100000) >> 5);
-				if (i % 8 != 7) returnBytes[i / 8 + 1] <<= 1;
+			var returnBytes = new byte[(data.Length * 6 + 5) / 8 + 2];
+			returnBytes[0] = (byte) data.Length;
+			for (var i = 1; i < returnBytes.Length; i++) {
+				try {
+					switch ((i - 1) % 3) {
+						case 0:
+							returnBytes[i] += (byte) ((chars[i - 1 + (i - 1) / 3] & 0b00111111) << 2);
+							returnBytes[i] += (byte) ((chars[i + (i - 1) / 3] & 0b00110000) >> 4);
+							break;
+						case 1:
+							returnBytes[i] += (byte) ((chars[i - 1 + (i - 1) / 3] & 0b00001111) << 4);
+							returnBytes[i] += (byte) ((chars[i + (i - 1) / 3] & 0b00111100) >> 2);
+							break;
+						case 2:
+							returnBytes[i] += (byte) ((chars[i - 1 + (i - 1) / 3] & 0b00000011) << 6);
+							returnBytes[i] += (byte) (chars[i + (i - 1) / 3] & 0b00111111);
+							break;
+					}
+				} catch (IndexOutOfRangeException ex) {
+					//ignore
+				}
 			}
-
 			return returnBytes;
 		}
 	}

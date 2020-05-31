@@ -26,6 +26,7 @@ namespace KBinXML {
 		public int Length => _data.Length;
 
 		public byte[] GetBytes(int count, bool reverse = true) {
+			if (_offset + count > _data.Length) count = _data.Length - _offset;
 			var data = _data[_offset..(_offset += count)];
 			
 			if (BitConverter.IsLittleEndian && reverse) {
