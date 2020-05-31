@@ -6,3 +6,4 @@ riderModule.iml
 
 *.user
 /.idea
+/KBinXML/nuget.config
