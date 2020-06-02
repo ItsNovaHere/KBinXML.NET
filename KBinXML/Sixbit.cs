@@ -15,7 +15,6 @@ namespace KBinXML {
 				StringMap.Add(CharacterMap[index], (byte) index);
 			}
 		}
-
 		
 		public static string Decode(ByteBuffer data) {
 			var length = data.GetU8();
@@ -69,9 +68,15 @@ namespace KBinXML {
 							break;
 					}
 				} catch (IndexOutOfRangeException ex) {
-					//ignore
+					// ignore
 				}
 			}
+			
+			// There has to be a better way of trimming null bytes, but alas I am a shit C# dev.
+			while(returnBytes[^1] == 0x00) {
+				Array.Resize(ref returnBytes, returnBytes.Length - 1);
+			}
+			
 			return returnBytes;
 		}
 	}

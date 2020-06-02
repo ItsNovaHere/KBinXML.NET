@@ -96,9 +96,9 @@ namespace KBinXML {
 		// This allows for cleaner code when dealing with bit math.
 		public void AppendU8(in int data) => AppendBytes(new[] {(byte) data}); 
 		public void AppendS8(in sbyte data) => AppendBytes(new[] {(byte) data});
-		public void AppendU16(in ushort data) => AppendBytes(BitConverter.GetBytes(data));
-		public void AppendU32(in uint data) => AppendBytes(BitConverter.GetBytes(data));
-		public void AppendS32(in int data) => AppendBytes(BitConverter.GetBytes(data));
+		public void AppendU16(in ushort data) => AppendBytes(BitConverter.GetBytes(data).Reverse().ToArray());
+		public void AppendU32(in uint data) => AppendBytes(BitConverter.GetBytes(data).Reverse().ToArray());
+		public void AppendS32(in int data) => AppendBytes(BitConverter.GetBytes(data).Reverse().ToArray());
 	}
 
 }

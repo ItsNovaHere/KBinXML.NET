@@ -76,7 +76,9 @@ namespace KBinXML {
 		}
 		
 		private void WriteString(string text) {
-			WriteDataAuto(_encoding.GetBytes(text));
+			var data = _encoding.GetBytes(text);
+			Array.Resize(ref data, data.Length + 1);
+			WriteDataAuto(data);
 		}
 
 		private void WriteNode(XElement element) {
@@ -109,10 +111,11 @@ namespace KBinXML {
 				if (format.Name == "bin") {
 					data = new byte[value.Length / 2];
 					for (var i = 0; i < data.Length; i++) {
-						data[i] = Convert.ToByte(value[i..(i + 2)], 16);
+						data[i] = Convert.ToByte(value[(i * 2)..(i * 2 + 2)], 16);
 					}
 				} else if (format.Name == "str") {
 					data = _encoding.GetBytes(value);
+					Array.Resize(ref data, data.Length + 1);
 				} else {
 					data = value.Split(" ").Aggregate(new byte[0], (b, s) => b.Concat(format.FormatFromString(s)).ToArray());
 				}
@@ -143,7 +146,7 @@ namespace KBinXML {
 
 		private void WriteNodeName(string name) {
 			if (_compressed) {
-				//TODO: Sixbit encoding. Fuck.
+				_nodeBuffer.AppendBytes(Sixbit.Encode(name));
 			} else {
 				var encoded = _encoding.GetBytes(name);
 				_nodeBuffer.AppendU8((encoded.Length - 1) | 64);
