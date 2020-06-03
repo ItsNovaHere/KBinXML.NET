@@ -64,7 +64,9 @@ namespace KBinXML {
 				Array.Resize(ref _data, dataEnd);
 			}
 			
-			
+			for(var i = 0; i < data.Length; i++) {
+				_data[offset + i] = data[i];
+			}
 		}
 
 		private byte GetByte() {

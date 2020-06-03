@@ -11,8 +11,6 @@ namespace KBinXML {
 		private readonly Encoding _encoding;
 		private readonly ByteBuffer _nodeBuffer;
 		private readonly ByteBuffer _dataBuffer;
-		private readonly ByteBuffer _dataWordBuffer;
-		private readonly ByteBuffer _dataByteBuffer;
 		internal static Encoding[] Encodings => KBinReader.Encodings;
 		internal static Dictionary<Encoding, byte> EncodingIndex;
 		internal static Dictionary<int, Format> Formats = KBinReader.Formats;
@@ -32,9 +30,7 @@ namespace KBinXML {
 			
 			_nodeBuffer = new ByteBuffer();
 			_dataBuffer = new ByteBuffer();
-			_dataByteBuffer = new ByteBuffer();
-			_dataWordBuffer = new ByteBuffer();
-			
+
 			WriteNode(document.Root);
 			
 			_nodeBuffer.AppendU8((byte)KBinReader.Control.SectionEnd | 64);
@@ -44,25 +40,27 @@ namespace KBinXML {
 			Document = header.Data.Concat(_nodeBuffer.Data.Concat(_dataBuffer.Data)).ToArray();
 		}
 
+		private int _byteOffset = 0;
+		private int _wordOffset = 0;
+		
 		private void WriteDataAligned(byte[] data, int size, int count) {
-			if (_dataByteBuffer.Offset % 4 == 0)
-				_dataByteBuffer.Offset = _dataBuffer.Offset;
-			if (_dataWordBuffer.Offset % 4 == 0)
-				_dataByteBuffer.Offset = _dataBuffer.Offset;
-
 			var totalSize = size * count;
 			if (totalSize == 1) {
-				if (_dataByteBuffer.Offset % 4 == 0) {
-					_dataByteBuffer.Offset = _dataBuffer.Length;
-					_dataByteBuffer.AppendU32(0);
+				if (_byteOffset % 4 == 0) {
+					_byteOffset = _dataBuffer.Offset;
+					_dataBuffer.AppendU32(0);
 				}
-				_dataByteBuffer.AppendU8(data[0]);
+
+				_dataBuffer.Set(data, _byteOffset);
+				_byteOffset++;
 			} else if(totalSize == 2) {
-				if (_dataWordBuffer.Offset % 4 == 0) {
-					_dataWordBuffer.Offset = _dataBuffer.Length;
-					_dataWordBuffer.AppendU32(0);
+				if (_wordOffset % 4 == 0) {
+					_wordOffset = _dataBuffer.Offset;
+					_dataBuffer.AppendU32(0);
 				}
-				_dataByteBuffer.AppendBytes(data[..2]);
+				
+				_dataBuffer.Set(data, _wordOffset);
+				_wordOffset += 2;
 			} else {
 				_dataBuffer.AppendBytes(data);
 				_dataBuffer.RealignWrite();

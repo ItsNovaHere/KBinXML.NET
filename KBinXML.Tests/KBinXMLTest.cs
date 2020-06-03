@@ -30,10 +30,12 @@ namespace KBinXML.Tests {
 		[Fact]
 		public void KBinWriter_Document_ReturnsByteArray() {
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-			
-			var kbin = new KBinWriter(XDocument.Load(@"testcases.xml"));
+
+			var source = XDocument.Load(@"testcases.xml");
+			var kbin = new KBinWriter(source);
 			var outKbin = new KBinReader(kbin.Document);
-			_testOutputHelper.WriteLine(outKbin.Document.ToString());
+			
+			Assert.Equal(source, outKbin.Document);
 		}
 
 		[Fact]

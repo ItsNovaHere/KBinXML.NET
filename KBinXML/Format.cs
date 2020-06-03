@@ -18,8 +18,8 @@ namespace KBinXML {
 		public static readonly Format Double = new Format(new[] {"double", "d"}, 8, Converters.DoubleToString, Converters.DoubleFromString);
 		public static readonly Format Time = new Format("time", 4, Converters.U32ToString, Converters.U32FromString);
 		public static readonly Format IP4 = new Format("ip4", 1, Converters.IP4ToString, Converters.IP4FromString, 4);
-		public static readonly Format String = new Format( new []{"str", "string"}, 0, null!, null!, -1); // Theoretically these should never be called. Key word: Theoretically.
-		public static readonly Format Binary = new Format(new[]{"bin", "binary"}, 0, null!, null!, -1); // See above.
+		public static readonly Format String = new Format( new []{"str", "string"}, 1, null!, null!, -1); // Theoretically these should never be called. Key word: Theoretically.
+		public static readonly Format Binary = new Format(new[]{"bin", "binary"}, 1, null!, null!, -1); // See above.
 		public static readonly Format Bool = new Format(new[] {"bool", "b"}, 1, Converters.BoolToString, Converters.BoolFromString);
 			
 			
@@ -84,7 +84,7 @@ namespace KBinXML {
 			});
 			var fromString = new FromString(data => {
 				var returnArray = new List<byte>();
-				foreach (var dataPart in data.Split(" ")) returnArray.AddRange(a._fromString(dataPart));
+				foreach (var dataPart in data.Split(" ")) returnArray.AddRange(a._fromString(dataPart).Reverse().ToArray());
 
 				return returnArray.ToArray();
 			});

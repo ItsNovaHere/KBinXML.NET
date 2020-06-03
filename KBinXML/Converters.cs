@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 
 namespace KBinXML {
 
@@ -21,7 +22,8 @@ namespace KBinXML {
 			for (var i = 0; i < ret.Length; i++) {
 				ret[i] = byte.Parse(input[i]);
 			}
-
+			
+			Array.Reverse(ret);
 			return ret;
 		}
 
