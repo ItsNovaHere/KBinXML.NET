@@ -12,7 +12,6 @@ namespace KBinXML {
 		private readonly ByteBuffer _nodeBuffer;
 		private readonly ByteBuffer _dataBuffer;
 		internal static Encoding[] Encodings => KBinReader.Encodings;
-		internal static Dictionary<Encoding, byte> EncodingIndex;
 		internal static Dictionary<int, Format> Formats = KBinReader.Formats;
 		public byte[] Document;
 
@@ -135,7 +134,7 @@ namespace KBinXML {
 				}
 			}
 
-			foreach (var c in element.Descendants()) {
+			foreach (var c in element.Elements()) {
 				WriteNode(c);
 			}
 

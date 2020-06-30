@@ -4,8 +4,8 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <Nullable>disable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Version>0.0.2-alpha </Version>
-        <PackageVersion>0.0.2-alpha</PackageVersion>
+        <Version>1.0.0-beta</Version>
+        <PackageVersion>1.0.0-beta</PackageVersion>
         <Title>KBinXML</Title>
         <Authors>ItsNovaHere</Authors>
         <Company>ItsNovaHere</Company>

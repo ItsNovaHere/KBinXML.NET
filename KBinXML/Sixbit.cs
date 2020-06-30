@@ -67,7 +67,7 @@ namespace KBinXML {
 							returnBytes[i] += (byte) (chars[i + (i - 1) / 3] & 0b00111111);
 							break;
 					}
-				} catch (IndexOutOfRangeException ex) {
+				} catch (IndexOutOfRangeException) {
 					// ignore
 				}
 			}
